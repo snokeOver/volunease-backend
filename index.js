@@ -55,12 +55,14 @@ const client = new MongoClient(mongoUrl);
 async function run() {
   try {
     // Services collection
-    const serviceCollections = client.db("Volun-Ease").collection("services");
+    const postCollection = client.db("Volun-Ease").collection("posts");
 
     // Services collection
     const checkOutCollection = client.db("Volun-Ease").collection("checkOuts");
 
     // Auth Related APIS
+
+    // JWT Create API
     app.post("/api/jwt", async (req, res) => {
       try {
         const token = jwt.sign(req.body, process.env.JWT_SECRET, {
@@ -79,6 +81,7 @@ async function run() {
       }
     });
 
+    // Log Out API
     app.post("/api/logout", (req, res) => {
       res
         .clearCookie("token", {
@@ -91,6 +94,21 @@ async function run() {
     });
 
     // Services Relative API
+
+    // add Volunteer Post to db
+    app.post("/api/add-post", verifyToken, async (req, res) => {
+      if (req.body.uid !== req.user.uid) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+      try {
+        const result = await postCollection.insertOne(req.body);
+        console.log(result);
+        res.status(201).send({ message: "Volunteer Post added successfully" });
+      } catch (error) {
+        console.error("Error adding Volunteer Post:", error);
+        res.status(500).send({ message: "Failed to add Tourist spot" });
+      }
+    });
 
     //  end of all APIs
   } catch (err) {
