@@ -176,6 +176,33 @@ async function run() {
       }
     });
 
+    // Get all Volunteers Post from db for Home Volunteers-need-now section
+    app.get("/api/posts", async (req, res) => {
+      try {
+        const result = await postCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching posts for volunteers:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // Get Single Volunteers Post from db based on post id
+    app.get("/api/post/:id", async (req, res) => {
+      const query = { _id: new ObjectId(req.params.id) };
+      try {
+        const result = await postCollection.findOne(query);
+        if (result) {
+          res.send(result);
+        } else {
+          res.status(404).send({ message: "Volunteer Post not found" });
+        }
+      } catch (error) {
+        console.error("Error fetching Volunteer Post:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
     //  end of all APIs
   } catch (err) {
     console.log(err.message);
