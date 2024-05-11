@@ -30,16 +30,67 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+// Middlewares to verify token
+const verifyToken = async (req, res, next) => {
+  const receivedToken = req.cookies.token;
+  if (!receivedToken) {
+    console.log("No token");
+    return res.status(401).send({ message: "Unauthorised" });
+  }
+  jwt.verify(receivedToken, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      console.log(err.message);
+      return res.status(401).send({ message: "Unauthorised" });
+    }
+    req.user = decoded;
+
+    next();
+  });
+};
+
 //Create a MongoClient instances
 
 const client = new MongoClient(mongoUrl);
 
 async function run() {
   try {
-    const result = await client.connect();
-    if (result.topology.client.topology.s.state === "connected") {
-      console.log("MongoDB connection successful!");
-    }
+    // Services collection
+    const serviceCollections = client.db("Volun-Ease").collection("services");
+
+    // Services collection
+    const checkOutCollection = client.db("Volun-Ease").collection("checkOuts");
+
+    // Auth Related APIS
+    app.post("/api/jwt", async (req, res) => {
+      try {
+        const token = jwt.sign(req.body, process.env.JWT_SECRET, {
+          expiresIn: "1h",
+        });
+        res
+          .cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production" ? true : false,
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+          })
+          .send({ success: true });
+      } catch (err) {
+        console.error(err.message);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    app.post("/api/logout", (req, res) => {
+      res
+        .clearCookie("token", {
+          maxAge: 0,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production" ? true : false,
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
+    });
+
+    // Services Relative API
 
     //  end of all APIs
   } catch (err) {
