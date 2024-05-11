@@ -56,9 +56,15 @@ async function run() {
   try {
     // Services collection
     const postCollection = client.db("Volun-Ease").collection("posts");
+    // User preference collection
+    const userPreferenceCollection = client
+      .db("Volun-Ease")
+      .collection("userPreferences");
 
-    // Services collection
-    const checkOutCollection = client.db("Volun-Ease").collection("checkOuts");
+    // Banner Images collection
+    const bannerImageCollection = client
+      .db("Volun-Ease")
+      .collection("bannerImages");
 
     // Auth Related APIS
 
@@ -95,6 +101,55 @@ async function run() {
 
     // Services Relative API
 
+    // Add user preference to db
+    app.post("/api/user-preference", async (req, res) => {
+      try {
+        const existingPreference = await userPreferenceCollection.findOne({
+          uid: req.body.uid,
+        });
+        if (existingPreference) {
+          const query = { uid: req.body.uid };
+          const updateData = req.body;
+          const updatedResult = await userPreferenceCollection.updateOne(
+            query,
+            {
+              $set: updateData,
+            }
+          );
+          res.status(200).send(updatedResult);
+        } else {
+          const insertResult = await userPreferenceCollection.insertOne(
+            req.body
+          );
+          res.send({ message: "Insert Success" });
+        }
+      } catch (error) {
+        console.error("Error adding user preference:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // Get user preference from db based on the uid
+    app.get("/api/user-preference/:id", async (req, res) => {
+      try {
+        const result = await userPreferenceCollection.findOne({
+          uid: req.params.id,
+        });
+        if (result) {
+          res.send(result);
+        } else {
+          const insertResult = await userPreferenceCollection.insertOne({
+            uid: req.params.id,
+            theme: "dark",
+          });
+          res.send(insertResult);
+        }
+      } catch (error) {
+        console.error("Error fetching User preference :", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
     // add Volunteer Post to db
     app.post("/api/add-post", verifyToken, async (req, res) => {
       if (req.body.uid !== req.user.uid) {
@@ -107,6 +162,17 @@ async function run() {
       } catch (error) {
         console.error("Error adding Volunteer Post:", error);
         res.status(500).send({ message: "Failed to add Tourist spot" });
+      }
+    });
+
+    // Get all banner images from db for banner, login and join page
+    app.get("/api/banner-images", async (req, res) => {
+      try {
+        const result = await bannerImageCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching Banner Images:", error);
+        res.status(500).send({ message: "Internal server error" });
       }
     });
 
