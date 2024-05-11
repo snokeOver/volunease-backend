@@ -61,6 +61,11 @@ async function run() {
       .db("Volun-Ease")
       .collection("userPreferences");
 
+    // User preference collection
+    const volunRequestCollection = client
+      .db("Volun-Ease")
+      .collection("volunRequests");
+
     // Banner Images collection
     const bannerImageCollection = client
       .db("Volun-Ease")
@@ -162,6 +167,28 @@ async function run() {
       } catch (error) {
         console.error("Error adding Volunteer Post:", error);
         res.status(500).send({ message: "Failed to add Tourist spot" });
+      }
+    });
+
+    // Request to be a Volunteer for a perticular post
+    app.post("/api/request-to-volunteer", verifyToken, async (req, res) => {
+      if (req.body.uid !== req.user.uid) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+      try {
+        const result = await volunRequestCollection.insertOne(req.body);
+        // update the Vounteer required number
+
+        const response = await postCollection.updateOne(
+          { _id: new ObjectId(req.body.id) },
+          {
+            $inc: { volunNumber: -1 },
+          }
+        );
+        res.status(201).send({ message: "Request added successfully" });
+      } catch (error) {
+        console.error("Error creating Request:", error);
+        res.status(500).send({ message: "Failed to save request" });
       }
     });
 
