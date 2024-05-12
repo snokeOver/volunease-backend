@@ -155,6 +155,19 @@ async function run() {
       }
     });
 
+    // Get Organizer posts from db based on the uid
+    app.get("/api/organizer-posts/:id", async (req, res) => {
+      try {
+        const result = await postCollection
+          .find({ uid: req.params.id })
+          .toArray();
+        res.status(200).send(result);
+      } catch (error) {
+        console.error("Error fetching organizer's posts:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
     // add Volunteer Post to db
     app.post("/api/add-post", verifyToken, async (req, res) => {
       if (req.body.uid !== req.user.uid) {
@@ -189,6 +202,33 @@ async function run() {
       } catch (error) {
         console.error("Error creating Request:", error);
         res.status(500).send({ message: "Failed to save request" });
+      }
+    });
+
+    // Delete Single Organizer post from db filtered by id
+    app.delete("/api/post/:id", verifyToken, async (req, res) => {
+      const query = { _id: new ObjectId(req.params.id) };
+      try {
+        const result = await postCollection.deleteOne(query);
+        res.status(200).send(result);
+      } catch (error) {
+        console.error("Error deleting this Organizer post:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // Update Single post of organizer from db filtered by id
+    app.patch("/api/post/:id", verifyToken, async (req, res) => {
+      const query = { _id: new ObjectId(req.params.id) };
+      const updateData = req.body;
+      try {
+        const result = await postCollection.updateOne(query, {
+          $set: updateData,
+        });
+        res.status(200).send(result);
+      } catch (error) {
+        console.error("Error updating this Post:", error);
+        res.status(500).send({ message: "Internal server error" });
       }
     });
 
