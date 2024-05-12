@@ -168,6 +168,21 @@ async function run() {
       }
     });
 
+    // Get Volunteer's requests from db based on the uid
+    app.get("/api/volunteer-requests/:id", async (req, res) => {
+      try {
+        const result = await volunRequestCollection
+          .find({
+            volunteerId: req.params.id,
+          })
+          .toArray();
+        res.status(200).send(result);
+      } catch (error) {
+        console.error("Error fetching volunteer's requests:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
     // add Volunteer Post to db
     app.post("/api/add-post", verifyToken, async (req, res) => {
       if (req.body.uid !== req.user.uid) {
@@ -183,17 +198,36 @@ async function run() {
       }
     });
 
-    // Request to be a Volunteer for a perticular post
+    // check if the post is already requested
+    app.post("/api/request-check", verifyToken, async (req, res) => {
+      const query = {
+        postId: req.body.postId,
+        volunteerId: req.body.volunteerId,
+      };
+
+      try {
+        const result = await volunRequestCollection.findOne(query);
+        if (!result) {
+          res.status(201).send({ success: false });
+        } else {
+          res.status(201).send({ success: true });
+        }
+      } catch (error) {
+        console.error("Error to find Post:", error);
+        res.status(500).send({ message: "Failed to Find post" });
+      }
+    });
+
+    //Create Request to be a Volunteer for a particular post
     app.post("/api/request-to-volunteer", verifyToken, async (req, res) => {
-      if (req.body.uid !== req.user.uid) {
+      if (req.body.volunteerId !== req.user.uid) {
         return res.status(403).send({ message: "Forbidden" });
       }
       try {
         const result = await volunRequestCollection.insertOne(req.body);
         // update the Vounteer required number
-
         const response = await postCollection.updateOne(
-          { _id: new ObjectId(req.body.id) },
+          { _id: new ObjectId(req.body.postId) },
           {
             $inc: { volunNumber: -1 },
           }
@@ -209,10 +243,32 @@ async function run() {
     app.delete("/api/post/:id", verifyToken, async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
       try {
-        const result = await postCollection.deleteOne(query);
+        const result = await volunRequestCollection.deleteOne(query);
         res.status(200).send(result);
       } catch (error) {
         console.error("Error deleting this Organizer post:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // Delete/Cancel Single volunteer request from db filtered by id
+    app.delete("/api/delete-request/:id", verifyToken, async (req, res) => {
+      const query = {
+        postId: req.params.id,
+      };
+      try {
+        const result = await volunRequestCollection.deleteOne(query);
+
+        // update the Vounteer required number
+        const response = await postCollection.updateOne(
+          { _id: new ObjectId(req.params.id) },
+          {
+            $inc: { volunNumber: 1 },
+          }
+        );
+        res.status(201).send({ message: "Request deleted successfully" });
+      } catch (error) {
+        console.error("Error deleting this volunteer request:", error);
         res.status(500).send({ message: "Internal server error" });
       }
     });
