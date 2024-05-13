@@ -243,7 +243,10 @@ async function run() {
     app.delete("/api/post/:id", verifyToken, async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
       try {
-        const result = await volunRequestCollection.deleteOne(query);
+        const result = await postCollection.deleteOne(query);
+        const response = await volunRequestCollection.deleteMany({
+          postId: req.params.id,
+        });
         res.status(200).send(result);
       } catch (error) {
         console.error("Error deleting this Organizer post:", error);
@@ -299,13 +302,46 @@ async function run() {
       }
     });
 
-    // Get all Volunteers Post from db for Home Volunteers-need-now section
+    // Get all Volunteers Post from db for Home Volunteers-need-now section in home page
     app.get("/api/posts", async (req, res) => {
       try {
-        const result = await postCollection.find().toArray();
+        const result = await postCollection
+          .find()
+          .sort({ _id: -1 })
+          .limit(6)
+          .toArray();
+
         res.send(result);
       } catch (error) {
         console.error("Error fetching posts for volunteers:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // Get all Volunteers Post from db based on pagination
+    app.get("/api/pagination-posts", async (req, res) => {
+      try {
+        const curPage = parseInt(req.query.page);
+        const size = parseInt(req.query.size);
+        const result = await postCollection
+          .find()
+          .skip((curPage - 1) * size)
+          .limit(size)
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching posts for volunteers:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // Get total volunteers post number from db
+    app.get("/api/post-number", async (req, res) => {
+      try {
+        const response = await postCollection.estimatedDocumentCount();
+        res.send({ response });
+      } catch (error) {
+        console.error("Error fetching total post number:", error);
         res.status(500).send({ message: "Internal server error" });
       }
     });
