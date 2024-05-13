@@ -66,6 +66,12 @@ async function run() {
       .db("Volun-Ease")
       .collection("volunRequests");
 
+    // User why-us collection
+    const whyUsCollection = client.db("Volun-Ease").collection("why-us");
+
+    // User award collection
+    const awardCollection = client.db("Volun-Ease").collection("award");
+
     // Banner Images collection
     const bannerImageCollection = client
       .db("Volun-Ease")
@@ -298,6 +304,28 @@ async function run() {
         res.send(result);
       } catch (error) {
         console.error("Error fetching Banner Images:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // Get all why-us data for home page
+    app.get("/api/why-us", async (req, res) => {
+      try {
+        const result = await whyUsCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching why-us data:", error);
+        res.status(500).send({ message: "Internal server error" });
+      }
+    });
+
+    // Get all award data for home page
+    app.get("/api/award", async (req, res) => {
+      try {
+        const result = await awardCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching award data:", error);
         res.status(500).send({ message: "Internal server error" });
       }
     });
