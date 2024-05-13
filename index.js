@@ -318,13 +318,17 @@ async function run() {
       }
     });
 
-    // Get all Volunteers Post from db based on pagination
+    // Get all Volunteers Post from db based on pagination and search
     app.get("/api/pagination-posts", async (req, res) => {
       try {
         const curPage = parseInt(req.query.page);
         const size = parseInt(req.query.size);
+        const search = req.query.search;
+        const query = {
+          title: { $regex: search, $options: "i" },
+        };
         const result = await postCollection
-          .find()
+          .find(query)
           .skip((curPage - 1) * size)
           .limit(size)
           .toArray();
@@ -335,10 +339,14 @@ async function run() {
       }
     });
 
-    // Get total volunteers post number from db
+    // Get total number of volunteers posts from db
     app.get("/api/post-number", async (req, res) => {
       try {
-        const response = await postCollection.estimatedDocumentCount();
+        const search = req.query.search;
+        const query = {
+          title: { $regex: search, $options: "i" },
+        };
+        const response = await postCollection.countDocuments(query);
         res.send({ response });
       } catch (error) {
         console.error("Error fetching total post number:", error);
