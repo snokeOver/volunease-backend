@@ -206,6 +206,9 @@ async function run() {
 
     // check if the post is already requested
     app.post("/api/request-check", verifyToken, async (req, res) => {
+      if (req.body.volunteerId !== req.user.uid) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
       const query = {
         postId: req.body.postId,
         volunteerId: req.body.volunteerId,
@@ -247,6 +250,10 @@ async function run() {
 
     // Delete Single Organizer post from db filtered by id
     app.delete("/api/post/:id", verifyToken, async (req, res) => {
+      console.log(req.query.uid);
+      if (req.query.uid !== req.user.uid) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
       const query = { _id: new ObjectId(req.params.id) };
       try {
         const result = await postCollection.deleteOne(query);
@@ -262,6 +269,9 @@ async function run() {
 
     // Delete/Cancel Single volunteer request from db filtered by id
     app.delete("/api/delete-request/:id", verifyToken, async (req, res) => {
+      if (req.query.uid !== req.user.uid) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
       const query = {
         postId: req.params.id,
       };
@@ -284,6 +294,10 @@ async function run() {
 
     // Update Single post of organizer from db filtered by id
     app.patch("/api/post/:id", verifyToken, async (req, res) => {
+      if (req.body.uid !== req.user.uid) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+
       const query = { _id: new ObjectId(req.params.id) };
       const updateData = req.body;
       try {
@@ -382,8 +396,12 @@ async function run() {
       }
     });
 
-    // Get Single Volunteers Post from db based on post id
-    app.get("/api/post/:id", async (req, res) => {
+    // Get Single Volunteers Post from db based on post id to check before be a voluteer
+    app.get("/api/post/:id", verifyToken, async (req, res) => {
+      if (req.query.uid !== req.user.uid) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+
       const query = { _id: new ObjectId(req.params.id) };
       try {
         const result = await postCollection.findOne(query);
